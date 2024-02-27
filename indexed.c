@@ -2,30 +2,34 @@
 #include <stdlib.h>
 
 #define MAX_FILES 100
-#define FILE_SIZE 1024 // Assuming each file has the same size for simplicity
+#define MAX_BLOCKS 10
+
+struct IndexBlock {
+    int blocks[MAX_BLOCKS];
+};
 
 struct File {
-    int start;
+    struct IndexBlock indexBlock;
     int size;
 };
 
 struct File files[MAX_FILES];
 
-int allocateContiguous(int fileSize) {
+int allocateIndexed(int fileSize) {
     int i;
     for (i = 0; i < MAX_FILES; ++i) {
         if (files[i].size == 0) {
-            int j, flag = 1;
+            int j, count = 0;
             for (j = 0; j < MAX_FILES; ++j) {
                 if (files[j].size != 0) {
-                    if (files[j].start < (MAX_FILES - fileSize)) {
-                        flag = 0;
-                        break;
-                    }
+                    ++count;
                 }
             }
-            if (flag) {
-                files[i].start = MAX_FILES - fileSize;
+            if (count + fileSize <= MAX_BLOCKS) {
+                int k;
+                for (k = 0; k < fileSize; ++k) {
+                    files[i].indexBlock.blocks[k] = count + k;
+                }
                 files[i].size = fileSize;
                 return i;
             }
@@ -34,7 +38,7 @@ int allocateContiguous(int fileSize) {
     return -1; // No space available
 }
 
-void deallocateContiguous(int fileIndex) {
+void deallocateIndexed(int fileIndex) {
     if (fileIndex >= 0 && fileIndex < MAX_FILES) {
         files[fileIndex].size = 0;
     } else {
@@ -43,11 +47,11 @@ void deallocateContiguous(int fileIndex) {
 }
 
 int main() {
-    int fileIndex = allocateContiguous(FILE_SIZE);
+    int fileIndex = allocateIndexed(3); // Example: Allocate a file of 3 blocks
     if (fileIndex != -1) {
         printf("File allocated at index %d\n", fileIndex);
         // Perform operations with the allocated file
-        deallocateContiguous(fileIndex);
+        deallocateIndexed(fileIndex);
         printf("File deallocated\n");
     } else {
         printf("Failed to allocate file\n");
